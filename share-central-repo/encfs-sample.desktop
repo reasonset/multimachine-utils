@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Terminal=false
+Name=EncFS with GNOME Keyring (docs)
+Comment=Open EncFS with GNOME Keyring Script (docs)
+Exec=open_encfs.zsh Documents /home/haruka/Dropbox/Documents /home/foo/Documents
+Icon=lock
+Categories=Security;Settings;
