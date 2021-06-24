@@ -55,6 +55,8 @@ All paramaters are required.
 |`ext`|String|Output file's extension name without dot.|
 |`source-style`|String|Title converting hint. `relive` is newer Radeon ReLive style filename `<title>_<date>-<time>[_<n>].mp4`. `coloros` is OPPO ColorOS Screen record style filename `Record_<date>-<time>_<appID>.mp4`. `raw` is no conversion except extension.|
 
+If `${XDG_CONFIG_HOME:-$HOME/.config}/reasonset/mmffr.yaml` is exist, overload the configuration.
+
 # Resign cluster
 
 Write hostname to `mmffr-stop` file (a hostname per line.)
@@ -84,3 +86,7 @@ outdir: ../Play
 ext: mkv
 source-style: relive
 ```
+
+# Filename style request
+
+If you want support for another filename, please report issue with filename example and who makes it.

@@ -37,6 +37,6 @@ It have key as "name" and value as "repository working root".
 
 ## If you like Git not Mercurial
 
-Set `YES` to `$I_LIKE_GIT_NOT_MERCURIAL` environment variable.
+Set `YES` to `$I_LIKE_GIT_NOT_MERCURIAL` environment variable, or append `@@@Git` suffix to repository path.
 
 Or create link `repos-treat-git.zsh` to `repos-treat.zsh` and execute `repos-treat-git.zsh`.

@@ -14,16 +14,18 @@ export -f splitrepos
 repolist=($(splitrepos))
 
 function getchanges {
-  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" ]]
+  declare repopath=$(getpath $1)
+  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" || $repopath == *@@@Git ]]
   then
     (
-      cd $(getpath $1)
+      repopath="${repopath%@@@Git}"
+      cd "$repopath"
       echo -n "2:"
       git status | perl -pe 's/\n/\\n/'
     )
   else
     (
-      cd $(getpath $1)
+      cd "$repopath"
       echo -n "2:"
       hg status | perl -pe 's/\n/\\n/'
     )
@@ -32,16 +34,17 @@ function getchanges {
 export -f getchanges
 
 function getdiff {
-  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" ]]
+  declare repopath=$(getpath $1)
+  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" || $repopath == *@@@Git ]]
   then
     (
-      cd $(getpath $1)
-      echo -n "2:"
+      cd "${repopath%@@@Git}"
+      echo -n "2:"Murcurial
       git diff | perl -pe 's/\n/\\n/'
     )
   else
     (
-      cd $(getpath $1)
+      cd "$repopath"
       echo -n "2:"
       hg diff | perl -pe 's/\n/\\n/'
     )
@@ -51,24 +54,26 @@ export -f getdiff
 
 
 function commit {
-  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" ]]
+  declare repopath=$(getpath $1)
+  if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" || $repopath == *@@@Git ]]
   then
     (
-      cd $(getpath $1)
+      cd "${repopath%@@@Git}"
       declare commitmsg="$2"
       if [[ -z $commitmsg ]]
       then
         commitmsg="Working snapshot from widget."
       fi
       echo -n "2:"
-      if (gitt add -A && git commit -m "$commitmsg")
+      if (git add -A && git commit -m "$commitmsg")
       then
-        echo COMMITED.
+        echo COMMITED. GOING TO PUSH.
+        git push
       fi
     ) | perl -pe 's/\n/\\n/'
   else
     (
-      cd $(getpath $1)
+      cd "$repopath"
       declare commitmsg="$2"
       if [[ -z $commitmsg ]]
       then
@@ -77,7 +82,8 @@ function commit {
       echo -n "2:"
       if hg commit -A -m "$commitmsg"
       then
-        echo COMMITED.
+        echo COMMITED. GOING TO PUSH.
+        hg push
       fi
     ) | perl -pe 's/\n/\\n/'
   fi
@@ -99,10 +105,19 @@ repos="$(for i in ${repolist[*]}
 do
   declare repoentry=(${i/:::/ })
   (
-    cd ${repoentry[1]}
-    if [[ -n "$(hg status)" ]]
+    if [[ "$I_LIKE_GIT_NOT_MERCURIAL" == "YES" || ${repoentry[1]} == *@@@Git ]]
     then
-      echo ${repoentry[0]}
+      cd ${repoentry[1]%@@@Git}
+      if [[ "$(git status)" != *"nothing to commit"* ]]
+      then
+        echo ${repoentry[0]}
+      fi
+    else
+      cd ${repoentry[1]}
+      if [[ -n "$(hg status)" ]]
+      then
+        echo ${repoentry[0]}
+      fi
     fi
   )
 done | perl -pe 's/\n/!/' | sed 's/!$//' )"
