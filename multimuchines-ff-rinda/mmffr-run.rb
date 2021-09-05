@@ -40,6 +40,17 @@ while entry = ts.take(["video", nil])
     command.push(entry[1][:dest])
     STDERR.puts "***GOING FFMPEG : ffmpeg #{command.join(" ")}"
     system("ffmpeg", *command)
+    unless $? == 0
+      File.open("mmffr-errors", "a") do |f|
+        f.flock(File::LOCK_EX)
+        begin
+          f.seek(0, IO::SEEK_END)
+          f.puts entry[1][:source]
+        ensure
+          f.flock(File::LOCK_UN)
+        end
+      end
+    end
   rescue
     puts "***!!!!!: #{entry.inspect}"
     raise

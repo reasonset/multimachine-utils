@@ -14,13 +14,13 @@ SERVER_ADDRESS = "druby://#{CONFIG["server-addr"]}:#{CONFIG["ts-port"]}"
 
 RULES = {
   "relive" => ->(path) {
-    path.strip.sub(/^.*?_/, "").sub(/\.[^.]*$/, "") + "." + CONFIG["ext"] # title_date-time[_n].mp4
+    File.basename(path.strip, ".*").sub(/^.*?_/, "") + "." + CONFIG["ext"] # title_date-time[_n].mp4
   },
   "coloros" => ->(path) {
-    path.strip.sub(/^Record_/, "").sub(/_.*?$/, "") + "." + CONFIG["ext"]
+    File.basename(path.strip, ".*").sub(/^Record_/, "") + "." + CONFIG["ext"]
   },
   "raw" => ->(path) {
-    path.strip.sub(/\.[^.]*$/, "") + "." + CONFIG["ext"] # name.ext
+    File.basename(path.strip, ".*") + "." + CONFIG["ext"] # name.ext
   }
 }
 

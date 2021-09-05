@@ -16,6 +16,7 @@ The central Mercurial/Git repository is stored in EncFS on a cloud drive (e.g. D
 * Yad
 * Ruby >= 2.1.0
 * Perl >= 5.4.0
+* GNU sed
 
 # Usage
 
