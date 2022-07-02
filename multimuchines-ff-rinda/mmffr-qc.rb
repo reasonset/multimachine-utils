@@ -17,7 +17,7 @@ RULES = {
     path.strip.sub(/^.*?_/, "").sub(/\.[^.]*$/, "") + "." + CONFIG["ext"] # title_date-time[_n].mp4
   },
   "coloros" => ->(path) {
-    path.strip.sub(/^Record_/, "").sub(/_.*?$/, "") + "." + CONFIG["ext"]
+    path.strip.sub(/(?:.*\/)?Record_/, "").sub(/_.*?$/, "") + "." + CONFIG["ext"]
   },
   "raw" => ->(path) {
     path.strip.sub(/\.[^.]*$/, "") + "." + CONFIG["ext"] # name.ext
@@ -56,6 +56,6 @@ File.foreach(ARGV[0]) do |line|
     ss: ss,
     t: t,
     source: c[0],
-    dest: "#{CONFIG["outdir"].sub(%r:/$:, "")}/#{dateprefix}-#{c[3]}"
+    dest: "#{CONFIG["outdir"].sub(%r:/$:, "")}/#{dateprefix}-#{c[3]}.#{CONFIG["ext"]}"
   }])
 end
