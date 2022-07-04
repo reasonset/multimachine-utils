@@ -7,5 +7,5 @@ title: Genshin
 style: ReLive
 # If this value is given, queue system regards file size as actual file size / power rate.
 power_rate: 1
-# ffmpeg options. r(-r), crf(-crf), ba(-b:a) are valid.
+# ffmpeg options. r(-r), vf(-vf), min(-minrate), max(-maxrate), tile(-tile-columns), threads(-threads), quality(-quality), cpu(-cpu-used), crf(-crf), ba(-b:a) and speed(-speed) are valid.
 ff_options: {}

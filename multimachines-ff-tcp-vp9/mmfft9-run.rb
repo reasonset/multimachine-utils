@@ -5,15 +5,15 @@ require 'socket'
 
 class MmFfT9R
   def initialize opts
+    @config_dir = ENV["XDG_CONFIG_HOME"] || "#{ENV["HOME"]}/.config"
+    @xdg_state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
+    @state_dir = "#{@xdg_state_dir}/reasonset/mmfft9"
     load_config opts[:type]
     calc_power
     @limit = nil
     if opts[:limit]
       @limit = (@power / 60.0 * opts[:limit].to_i).to_i
     end
-    @xdg_state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
-    @state_dir = "#{@xdg_state_dir}/reasonset/mmfft9"
-    @config_dir = ENV["XDG_CONFIG_HOME"] || "#{ENV["HOME"]}/.config"
     @request_min = opts[:request_min]
   end
 
@@ -56,23 +56,40 @@ class MmFfT9R
     cmdlist << "-ss" << res[:ff_options]["ss"] if res[:ff_options]["ss"] # SKIP
     cmdlist << "-t" << res[:ff_options]["t"] if res[:ff_options]["t"] # Time duration
     cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
+    cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
+    cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
+    cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
+    cmdlist << "-tile-columns" << res[:ff_options]["tile"] if  res[:ff_options]["tile"]
+    cmdlist << "-threads" << res[:ff_options]["threads"] if  res[:ff_options]["threads"]
+    cmdlist << "-quality" << res[:ff_options]["quality"] if  res[:ff_options]["quality"]
+    cmdlist << "-cpu-used" << res[:ff_options]["cpu"] if  res[:ff_options]["cpu"]
     cmdlist << "-c:v" << "libvpx-vp9"
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
     cmdlist << "-crf" << (res[:ff_options]["crf"]&.to_s || "44")
     cmdlist << "-c:a" << "libopus"
     cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
+    cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
     cmdlist << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
     Dir.mkdir "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
 
-    time_start = Time.now
-    # ffmpeg
-    system("ffmpeg", *cmdlist)
-    status = $?
-    time_end = Time.now
+    fail_reason = nil
+    if File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
+      fail_reason = "existing"
+    else
+      time_start = Time.now
+      # ffmpeg
+      system("ffmpeg", *cmdlist)
+      status = $?
+      time_end = Time.now
+      if status != 0
+        fail_reason = "ffmpeg_nonzero"
+      end
+    end
 
     # errors
-    if status != 0
+    if fail_reason
+      res["fail_status"] = fail_reason
       unless File.exist? "#{@state_dir}/errors"
         File.open("#{@state_dir}/errors", "w") {|f| YAML.dump([], f)}
       end
@@ -80,8 +97,8 @@ class MmFfT9R
         f.flock(File::LOCK_EX)
         begin
           errors = YAML.load f
-          f.seek(0)
-          f.truncate
+          f.seek 0
+          f.truncate 0
           errors.push(res)
           YAML.dump errors, f
         ensure

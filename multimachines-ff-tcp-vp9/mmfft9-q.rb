@@ -28,6 +28,14 @@ class MmFfT9Q
     end
   end
 
+  def calc_size file
+    if @config["this"]["style"].downcase == "clip"
+      10
+    else
+      (File::Stat.new(file.chomp).size / (@config["this"]["power_rate"] || 1.0)).to_i
+    end
+  end
+
   def load_list io
     @list = []
     io.each do |i|
@@ -36,7 +44,7 @@ class MmFfT9Q
         outfile: outfile_format(i),
         source_prefix: @config["this"]["prefix"],
         title: @config["this"]["title"],
-        size: (File::Stat.new(i.chomp).size / (@config["this"]["power_rate"] || 1.0)).to_i,
+        size: calc_size(i),
         ff_options: @config["this"]["ff_options"] || {}
       })
     end
