@@ -98,7 +98,7 @@ class MmFfT9
       while sock = server.accept
         cmd = Marshal.load sock
         sock.close_read
-        puts "=============> Request Accepted"
+        puts "=============> Request Accepted @ #{Time.now.to_s}"
         pp cmd
 
         case cmd[:cmd]

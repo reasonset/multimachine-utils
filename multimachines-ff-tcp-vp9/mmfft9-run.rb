@@ -36,15 +36,17 @@ class MmFfT9R
         f.flock File::LOCK_EX
       end
       perc = cost_list.length / 10
-      valid_list = cost_list.sort[perc, (perc * 8)]
+      valid_list = cost_list.sort.drop(perc).reverse.drop(perc)
+
       if !valid_list || valid_list.empty
         0
       else
-        valid_list.sum / (perc * 8)
+        valid_list.sum / valid_list.length
       end
     else
       0
     end
+    STDERR.puts "=========> Set power [#{@power} bytes in second]"
   end
 
   def ff res
@@ -54,7 +56,7 @@ class MmFfT9R
     cmdlist << "-nostdin"        # Do not use STDIN
     cmdlist << "-n"              # Do not overwrite
     cmdlist << "-ss" << res[:ff_options]["ss"] if res[:ff_options]["ss"] # SKIP
-    cmdlist << "-t" << res[:ff_options]["t"] if res[:ff_options]["t"] # Time duration
+    cmdlist << "-to" << res[:ff_options]["to"] if res[:ff_options]["to"] # Time duration
     cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
     cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
     cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
@@ -90,10 +92,10 @@ class MmFfT9R
     # errors
     if fail_reason
       res["fail_status"] = fail_reason
-      unless File.exist? "#{@state_dir}/errors"
-        File.open("#{@state_dir}/errors", "w") {|f| YAML.dump([], f)}
+      unless File.exist? "#{@state_dir}/errors.yaml"
+        File.open("#{@state_dir}/errors.yaml", "w") {|f| YAML.dump([], f)}
       end
-      File.open("#{@state_dir}/errors", "r+") do |f|
+      File.open("#{@state_dir}/errors.yaml", "r+") do |f|
         f.flock(File::LOCK_EX)
         begin
           errors = YAML.load f
@@ -110,13 +112,17 @@ class MmFfT9R
     # write elapsed
     begin
       elapsed = (time_end - time_start).to_i
-      File.open("#{@state_dir}/power", "a") do |f|
-        f.flock(File::LOCK_EX)
-        begin
-          f.seek(0, IO::SEEK_END)
-          f.puts(res[:size] / elapsed)
-        ensure
-          f.flock(File::LOCK_UN)
+
+      # Record power. It wants 1MiB source size at least.
+      if res[:size] > (1024 * 1024)
+        File.open("#{@state_dir}/power", "a") do |f|
+          f.flock(File::LOCK_EX)
+          begin
+            f.seek(0, IO::SEEK_END)
+            f.puts(res[:size] / elapsed)
+          ensure
+            f.flock(File::LOCK_UN)
+          end
         end
       end
     rescue
