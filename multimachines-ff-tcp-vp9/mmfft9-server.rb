@@ -36,8 +36,7 @@ class MmFfT9
 
   def add list
     @queue.concat list
-    @queue.sort_by! {|i| [-(i[:priority] || 0), -i[:size]] }
-    @queue.uniq!
+    @queue = @queue.sort_by {|i| [(i[:priority] || 0), i[:size]] }.uniq.reverse
     pp @queue
   end
 
@@ -48,17 +47,21 @@ class MmFfT9
     end
 
     list = @queue[leading..]
+    if list.empty?
+      return {bye: true}
+    end
+
     entity = if req[:request_min]
       @queue.pop
     elsif req[:limit]
-      index = @queue.index {|i| i[:size] < req[:limit]}
+      index = list.index {|i| i[:size] < req[:limit]}
       if index
-        @queue.delete_at index
+        @queue.delete_at(leading + index)
       else
         {bye: true}
       end
     else
-       @queue.shift
+      @queue.shift
     end
 
     entity
@@ -79,7 +82,7 @@ class MmFfT9
         power: req[:power],
         holds: req[:holds]
       })
-      @holds.sort_by! {|i| -i[:power] }
+      @holds = @holds.sort_by {|i| i[:power] }.reverse
     end
   end
 
@@ -88,7 +91,7 @@ class MmFfT9
     @hosts[name] -= 1
     if @hosts[name] <= 0
       @hosts.delete name
-      @holds.sort_by! {|i| -i[:power] }
+      @holds = @holds.sort_by {|i| i[:power] }.reverse
     end
   end
 

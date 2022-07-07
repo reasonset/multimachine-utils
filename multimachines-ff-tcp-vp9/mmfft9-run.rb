@@ -2,6 +2,7 @@
 require 'yaml'
 require 'optparse'
 require 'socket'
+require 'dbm'
 
 class MmFfT9R
   def initialize opts
@@ -14,7 +15,7 @@ class MmFfT9R
     if opts[:limit]
       @limit = (@power / 60.0 * opts[:limit].to_i).to_i
     end
-    @request_min = opts[:request_min]
+    @request_min = opts[:"request-min"]
   end
 
   def load_config type
@@ -112,23 +113,40 @@ class MmFfT9R
     # write elapsed
     begin
       elapsed = (time_end - time_start).to_i
-
-      # Record power. It wants 1MiB source size at least.
-      if res[:size] > (1024 * 1024)
-        File.open("#{@state_dir}/power", "a") do |f|
-          f.flock(File::LOCK_EX)
-          begin
-            f.seek(0, IO::SEEK_END)
-            f.puts(res[:size] / elapsed)
-          ensure
-            f.flock(File::LOCK_UN)
-          end
-        end
-      end
+      save_power res, elapsed
+      save_title_power res, elapsed
     rescue
       nil
     end
 
+  end
+
+  def save_power res, elapsed
+    # Record power. It wants 1MiB source size at least.
+    if res[:size] > (1024 * 1024)
+      File.open("#{@state_dir}/power", "a") do |f|
+        f.flock(File::LOCK_EX)
+        begin
+          f.seek(0, IO::SEEK_END)
+          f.puts(res[:size] / elapsed)
+        rescue
+          STDERR.puts "Failed to save power"
+        ensure
+          f.flock(File::LOCK_UN)
+        end
+      end
+    end
+  end
+
+  def save_title_power res, elapsed
+    # Record title power. It wants 1MiB source size at least.
+    if res[:size] > (1024 * 1024)
+      DBM.open("#{@state_dir}/title_power") do |dbm|
+        power_list = dbm.key?(res[:title]) ? Marshal.load(dbm[res[:title]]) : []
+        power_list.push(res[:original_size] / elapsed)
+        dbm[res[:title]] = Marshal.dump(power_list)
+      end
+    end
   end
 
   def connect
