@@ -31,7 +31,7 @@ class MmFfT9R
       File.open "#{@state_dir}/power" do |f|
         f.flock File::LOCK_SH
         f.each do |line|
-          i = line.chomp
+          i = line.chomp.sub("\t.*", "")
           cost_list.push(i.to_i)
         end
         f.flock File::LOCK_EX
@@ -39,7 +39,7 @@ class MmFfT9R
       perc = cost_list.length / 10
       valid_list = cost_list.sort.drop(perc).reverse.drop(perc)
 
-      if !valid_list || valid_list.empty
+      if !valid_list || valid_list.empty?
         0
       else
         valid_list.sum / valid_list.length
@@ -108,17 +108,18 @@ class MmFfT9R
           f.flock(File::LOCK_UN)
         end
       end
+    else
+      # write elapsed
+      begin
+        elapsed = (time_end - time_start).to_i
+        if elapsed > 0
+          save_power res, elapsed
+          save_title_power res, elapsed
+        end
+      rescue
+        nil
+      end
     end
-
-    # write elapsed
-    begin
-      elapsed = (time_end - time_start).to_i
-      save_power res, elapsed
-      save_title_power res, elapsed
-    rescue
-      nil
-    end
-
   end
 
   def save_power res, elapsed
@@ -128,7 +129,7 @@ class MmFfT9R
         f.flock(File::LOCK_EX)
         begin
           f.seek(0, IO::SEEK_END)
-          f.puts(res[:size] / elapsed)
+          f.printf("%d\t%s\t%s", (res[:size] / elapsed), res[:source_prefix], res[:file])
         rescue
           STDERR.puts "Failed to save power"
         ensure
@@ -165,6 +166,7 @@ class MmFfT9R
         Marshal.dump({
           cmd: :take,
           new: first,
+          worker_id: sprintf("%d@%s", Process.pid, @config["hostname"]),
           holds: @config["holds"],
           power: @power,
           name: @config["hostname"],

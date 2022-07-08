@@ -64,16 +64,16 @@ class MmFfT9Q
           source_file, ss, t, dest_file = *i.chomp.split("\t", 4)
           ss = nil if ss == "-"
           t = nil if t == "-"
-          ff_options = @config["this"]["ff_options"] || {}
-          ff_options["ss"] = ss
-          ff_options["to"] = t
+          ff_clip = {}
+          ff_clip["ss"] = ss
+          ff_clip["to"] = t
           @list.push({
             file: source_file,
             outfile: (dest_file + ".webm"),
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             size: 10,
-            ff_options: ff_options
+            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
           })
         end
       when "named"

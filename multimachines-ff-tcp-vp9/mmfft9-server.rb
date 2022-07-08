@@ -8,7 +8,8 @@ class MmFfT9
     load_config opts[:type]
 
     @hosts = Hash.new(0)
-    @holds = []
+    @holds = {}
+    @workers = {}
     @state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
     @qf = "#{@state_dir}/reasonset/mmfft9/queue.rbm"
     @ef = "#{@state_dir}/reasonset/mmfft9/errors"
@@ -42,8 +43,9 @@ class MmFfT9
 
   def take req
     leading = 0
-    @holds.each do |x|
-      leading += x[:holds] if x[:name] != req[:name]
+    holds = @holds.keys.sort_by {|k| @holds[k][:power] }
+    holds.each do |x|
+      leading += @holds[x][:holds] if @holds[x][:name] != req[:name]
     end
 
     list = @queue[leading..]
@@ -76,14 +78,12 @@ class MmFfT9
   def add_host req
     name = req[:name]
     @hosts[name] += 1
-    unless @holds.index name
-      @holds.push({
-        name: name,
-        power: req[:power],
-        holds: req[:holds]
-      })
-      @holds = @holds.sort_by {|i| i[:power] }.reverse
-    end
+    @holds[name] = {
+      name: name,
+      power: req[:power],
+      holds: req[:holds]
+    } unless @holds[name]
+    @workers[req[:worker_id]] = Time.now
   end
 
   def del_host req
@@ -91,8 +91,9 @@ class MmFfT9
     @hosts[name] -= 1
     if @hosts[name] <= 0
       @hosts.delete name
-      @holds = @holds.sort_by {|i| i[:power] }.reverse
+      @holds.delete name
     end
+    @workers.delete req[:worker_id]
   end
 
   def main

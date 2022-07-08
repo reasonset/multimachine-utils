@@ -27,6 +27,10 @@ class MmFfT9Pw
       end
     end
 
+    if @avg.empty?
+      abort "No power is recorded yet."
+    end
+
     target_power = if title
       @avg[title].to_f or abort "No power recorded for #{title}"
     else
