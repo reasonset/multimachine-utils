@@ -54,6 +54,7 @@ class MmFfT9Q
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             size: calc_size(i),
+            original_size: File::Stat.new(i.chomp),
             ff_options: @config["this"]["ff_options"] || {}
           })
         end
@@ -72,21 +73,9 @@ class MmFfT9Q
             outfile: (dest_file + ".webm"),
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
+            original_size: File::Stat.new(source_file),
             size: 10,
             ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
-          })
-        end
-      when "named"
-        # Tab separated, source_path\tdest_filename
-        io.each do |i|
-          source_file, dest_file = *i.chomp.split("\t", 2)
-          @list.push({
-            file: source_file,
-            outfile: (dest_file + ".webm"),
-            source_prefix: @config["this"]["prefix"],
-            title: @config["this"]["title"],
-            size: calc_size(i),
-            ff_options: @config["this"]["ff_options"] || {}
           })
         end
       else
@@ -97,6 +86,7 @@ class MmFfT9Q
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             size: calc_size(i),
+            original_size: File::Stat.new(i.chomp),
             ff_options: @config["this"]["ff_options"] || {}
           })
         end

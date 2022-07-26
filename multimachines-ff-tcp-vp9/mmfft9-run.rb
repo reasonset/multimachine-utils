@@ -16,6 +16,7 @@ class MmFfT9R
       @limit = (@power / 60.0 * opts[:limit].to_i).to_i
     end
     @request_min = opts[:"request-min"]
+    @worker_id = sprintf("%d@%s", Process.pid, @config["hostname"])
   end
 
   def load_config type
@@ -26,7 +27,9 @@ class MmFfT9R
 
   def calc_power
     STDERR.puts "=========> Calculating power..."
-    @power = if File.exist? "#{@state_dir}/power"
+    @power = if @config["presumptive_power"]
+      @config["presumptive_power"]
+    elsif File.exist? "#{@state_dir}/power"
       cost_list = []
       File.open "#{@state_dir}/power" do |f|
         f.flock File::LOCK_SH
@@ -116,8 +119,8 @@ class MmFfT9R
           save_power res, elapsed
           save_title_power res, elapsed
         end
-      rescue
-        nil
+      rescue => e
+        STDERR.puts "!!! #{e} (@power)"
       end
     end
   end
@@ -129,7 +132,7 @@ class MmFfT9R
         f.flock(File::LOCK_EX)
         begin
           f.seek(0, IO::SEEK_END)
-          f.printf("%d\t%s\t%s", (res[:size] / elapsed), res[:source_prefix], res[:file])
+          f.printf("%d\t%s\t%s\n", (res[:size] / elapsed), res[:source_prefix], res[:file])
         rescue
           STDERR.puts "Failed to save power"
         ensure
@@ -142,6 +145,7 @@ class MmFfT9R
   def save_title_power res, elapsed
     # Record title power. It wants 1MiB source size at least.
     if res[:size] > (1024 * 1024)
+      STDERR.puts "=======> Writing title power #{res[:original_size]}/#{elapsed} for #{res[:title]}"
       DBM.open("#{@state_dir}/title_power") do |dbm|
         power_list = dbm.key?(res[:title]) ? Marshal.load(dbm[res[:title]]) : []
         power_list.push(res[:original_size] / elapsed)
@@ -151,7 +155,6 @@ class MmFfT9R
   end
 
   def connect
-    first = true
     loop do
       sock = TCPSocket.open(@config["host"], @config["port"])
       # Stop request if ~/.local/state/reasonset/mmfft9/exit is exist.
@@ -165,8 +168,7 @@ class MmFfT9R
         # Request next one.
         Marshal.dump({
           cmd: :take,
-          new: first,
-          worker_id: sprintf("%d@%s", Process.pid, @config["hostname"]),
+          worker_id: @worker_id,
           holds: @config["holds"],
           power: @power,
           name: @config["hostname"],
@@ -174,7 +176,6 @@ class MmFfT9R
           limit: ((!@limit || @limit.zero?) ? nil : @limit)
         }, sock)
         sock.close_write
-        first &&= false
         res = Marshal.load(sock)
         sock.close
         break if res[:bye]

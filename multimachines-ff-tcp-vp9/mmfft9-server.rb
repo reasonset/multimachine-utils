@@ -9,7 +9,7 @@ class MmFfT9
 
     @hosts = Hash.new(0)
     @holds = {}
-    @workers = {}
+    @workers = {} # For log only
     @state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
     @qf = "#{@state_dir}/reasonset/mmfft9/queue.rbm"
     @ef = "#{@state_dir}/reasonset/mmfft9/errors"
@@ -50,7 +50,7 @@ class MmFfT9
 
     list = @queue[leading..]
     if list.empty?
-      return {bye: true}
+      return nil
     end
 
     entity = if req[:request_min]
@@ -60,13 +60,27 @@ class MmFfT9
       if index
         @queue.delete_at(leading + index)
       else
-        {bye: true}
+        nil
       end
     else
       @queue.shift
     end
 
+    @workers[req[:worker_id]] = {
+      atime: Time.now,
+      processing: entity
+    }
+
     entity
+  end
+
+  def info
+    value = {
+      hosts: @hosts,
+      holds: @holds,
+      workers: @workers,
+      queue: @queue
+    }
   end
 
   def save_queue
@@ -83,7 +97,6 @@ class MmFfT9
       power: req[:power],
       holds: req[:holds]
     } unless @holds[name]
-    @workers[req[:worker_id]] = Time.now
   end
 
   def del_host req
@@ -109,7 +122,7 @@ class MmFfT9
         when :add
           add cmd[:list]
         when :take
-          add_host cmd if cmd[:new]
+          add_host cmd unless @workers[cmd[:worker_id]]
           i = take cmd
           if i
             Marshal.dump i, sock
@@ -117,12 +130,15 @@ class MmFfT9
             Marshal.dump({bye: true}, sock)
             del_host cmd
           end
+        when :info
+          value = info
+          Marshal.dump(value, sock)
         when :bye
           del_host cmd
         end
         sock.close
         puts "=============> Request Closed"
-        pp({hosts: @hosts, holds: @holds, queue_length: @queue.length})
+        pp({queue_length: @queue.length})
       end
     ensure
       save_queue
