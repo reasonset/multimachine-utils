@@ -69,6 +69,13 @@ class MmFfT9Info
         title: i[:title],
         size: hr(i[:size]),
       }}
+      info[:workers] = info[:workers].each do |k, v|
+        info[:workers][k] = {
+          at: v[:atime].to_s,
+          source: v[:processing][:file],
+          title: v[:processing][:title]
+        }
+      end
     end
 
     case @mode
