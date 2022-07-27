@@ -58,6 +58,7 @@ class MmFfT9Info
     info[:unknown_size_items] = unknown_num
     info[:queue_length] = info[:queue].length
     info[:num_of_workers] = info[:workers].length
+    info[:worker_total_size] = hr info[:workers].sum {|k, v| v[:processing][:size] }
 
     unless @full_queue
       info[:queue] = info[:queue].first 5
