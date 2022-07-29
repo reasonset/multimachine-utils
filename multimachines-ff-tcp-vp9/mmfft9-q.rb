@@ -27,7 +27,7 @@ class MmFfT9Q
       File.basename(file.chomp, ".*").sub(/^.*?_/, "") + ".webm" # title_date-time[_n].mp4
     when "coloros"
       # ColorOS mobile screen recorder.
-      File.basename(path.strip, ".*").sub(/^Record_/, "") + ".webm"
+      File.basename(file.strip, ".*").sub(/^Record_/, "") + ".webm"
     else
       # No filename conversion.
       File.basename(file.chomp, ".*") + ".webm"
@@ -54,7 +54,7 @@ class MmFfT9Q
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             size: calc_size(i),
-            original_size: File::Stat.new(i.chomp),
+            original_size: File::Stat.new(i.chomp).size,
             ff_options: @config["this"]["ff_options"] || {}
           })
         end
@@ -68,13 +68,16 @@ class MmFfT9Q
           ff_clip = {}
           ff_clip["ss"] = ss
           ff_clip["to"] = t
+          # If ss or to given, set 10 to size to be ignored. Otherwise set size.
+          size = (ss or t) ? 10 : calc_size(source_file)
+
           @list.push({
             file: source_file,
             outfile: (dest_file + ".webm"),
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
-            original_size: File::Stat.new(source_file),
-            size: 10,
+            original_size: File::Stat.new(source_file).size,
+            size: size,
             ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
           })
         end
@@ -86,7 +89,7 @@ class MmFfT9Q
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             size: calc_size(i),
-            original_size: File::Stat.new(i.chomp),
+            original_size: File::Stat.new(i.chomp).size,
             ff_options: @config["this"]["ff_options"] || {}
           })
         end
