@@ -18,7 +18,9 @@ class MmFfT9Info
     end
     @full_queue = opts[:full]
     @compact = opts[:compact]
+    @squashed = opts[:squashed]
     @hr = opts[:"human-readable"]
+    @now = Time.now
   end
 
   def load_config type
@@ -43,9 +45,22 @@ class MmFfT9Info
     end
   end
 
+  def time_format(sec)
+    sprintf("%d:%02d:%02d",
+            (sec / (60 * 60)),
+            (sec % (60 * 60) / 60),
+            (sec % 60))
+  end
+
   def fprint_info info
     total_size = 0
     unknown_num = 0
+
+    power_map = {}
+    info[:holds].each do |k, v|
+      power_map[k] = v[:power]
+    end
+
     info[:queue].each do |i|
       if i[:size] > 1000
         total_size += i[:size]
@@ -64,15 +79,29 @@ class MmFfT9Info
       info[:queue] = info[:queue].first 5
     end
 
-    if @compact
+    if @squashed
+      info[:queue] = info[:queue].map {|i| sprintf("%s @%s", i[:title], (hr(i[:size]) || "clip")) }
+    elsif @compact
       info[:queue] = info[:queue].map {|i| {
         file: i[:outfile],
         title: i[:title],
         size: hr(i[:size]),
       }}
+    end
+
+    if @squashed
+      info[:workers] = info[:workers].each do |k, v|
+        info[:workers][k] = sprintf("%s @%s - %s / %s",
+                                    v[:processing][:title],
+                                    (hr(v[:processing][:size]) || "clip"),
+                                    time_format(@now - v[:atime]),
+                                    (time_format((v[:processing][:size]) / power_map[k.sub(/.*?@/, "")]) rescue "???"))
+      end
+    elsif @compact
       info[:workers] = info[:workers].each do |k, v|
         info[:workers][k] = {
           at: v[:atime].to_s,
+          estimated_size: hr(v[:processing][:size]),
           source: v[:processing][:file],
           title: v[:processing][:title]
         }
@@ -106,6 +135,7 @@ op.on("-y", "--yaml")
 op.on("-j", "--json")
 op.on("-f", "--full")
 op.on("-c", "--compact")
+op.on("-s", "--squashed")
 op.on("-h", "--human-readable")
 
 op.parse!(ARGV, into: opts)

@@ -145,11 +145,11 @@ class MmFfT9R
   def save_title_power res, elapsed
     # Record title power. It wants 1MiB source size at least.
     if res[:size] > (1024 * 1024)
-      STDERR.puts "=======> Writing title power #{res[:original_size]}/#{elapsed} for #{res[:title]}"
+      STDERR.puts "=======> Writing title power #{res[:original_size]}/#{elapsed} for #{res[:source_prefix]}"
       DBM.open("#{@state_dir}/title_power") do |dbm|
-        power_list = dbm.key?(res[:title]) ? Marshal.load(dbm[res[:title]]) : []
+        power_list = dbm.key?(res[:source_prefix]) ? Marshal.load(dbm[res[:source_prefix]]) : []
         power_list.push(res[:original_size] / elapsed)
-        dbm[res[:title]] = Marshal.dump(power_list)
+        dbm[res[:source_prefix]] = Marshal.dump(power_list)
       end
     end
   end

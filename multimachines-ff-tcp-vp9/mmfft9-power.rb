@@ -15,7 +15,6 @@ class MmFfT9Pw
       dbm.each do |k, v|
         begin
           power_list = Marshal.load(v).sort
-          pp power_list
           next if power_list.empty?
           all_avg = power_list.sum / power_list.length
           power_list = power_list.drop_while {|i| i < (all_avg - all_avg * @drop_rate) }
