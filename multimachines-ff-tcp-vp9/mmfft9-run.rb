@@ -96,6 +96,7 @@ class MmFfT9R
     # errors
     if fail_reason
       res["fail_status"] = fail_reason
+      res["at"] = Time.new.to_s
       unless File.exist? "#{@state_dir}/errors.yaml"
         File.open("#{@state_dir}/errors.yaml", "w") {|f| YAML.dump([], f)}
       end
