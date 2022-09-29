@@ -49,7 +49,7 @@ class MmFfT9
     end
 
     list = @queue[leading..]
-    if list.empty?
+    if !list || list.empty?
       return nil
     end
 

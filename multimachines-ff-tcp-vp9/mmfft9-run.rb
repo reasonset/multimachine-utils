@@ -34,8 +34,11 @@ class MmFfT9R
       File.open "#{@state_dir}/power" do |f|
         f.flock File::LOCK_SH
         f.each do |line|
-          i = line.chomp.sub("\t.*", "")
-          cost_list.push(i.to_i)
+          i = line.chomp.split("\t")
+          standard_title = @config["standard"]
+          if !standard_title || standard_title == i[1]
+            cost_list.push(i[0].to_i)
+          end
         end
         f.flock File::LOCK_EX
       end
@@ -160,7 +163,7 @@ class MmFfT9R
       sock = TCPSocket.open(@config["host"], @config["port"])
       # Stop request if ~/.local/state/reasonset/mmfft9/exit is exist.
       if File.exist? "#{@state_dir}/exit"
-        Marsha.dump({
+        Marshal.dump({
           cmd: :bye,
           name: @config["hostname"]
         })
