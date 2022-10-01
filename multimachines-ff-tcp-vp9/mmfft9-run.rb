@@ -15,7 +15,7 @@ class MmFfT9R
     if opts[:limit]
       @limit = (@power / 60.0 * opts[:limit].to_i).to_i
     elsif opts[:"limit-size"]
-      @limit = opts[:"limit-size"] * 1_000_000
+      @limit = opts[:"limit-size"].to_i * 1_000_000
     end
     @request_min = opts[:"request-min"]
     @worker_id = sprintf("%d@%s", Process.pid, @config["hostname"])
