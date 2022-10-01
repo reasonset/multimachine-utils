@@ -14,6 +14,8 @@ class MmFfT9R
     @limit = nil
     if opts[:limit]
       @limit = (@power / 60.0 * opts[:limit].to_i).to_i
+    elsif opts[:"limit-size"]
+      @limit = opts[:"limit-size"] * 1_000_000
     end
     @request_min = opts[:"request-min"]
     @worker_id = sprintf("%d@%s", Process.pid, @config["hostname"])
@@ -193,7 +195,8 @@ end
 op = OptionParser.new
 opts = {}
 op.on("-t TYPE", "--type")
-op.on("-l min", "--limit")
+op.on("-l minutes", "--limit")
+op.on("-L megabyte", "--limit-size")
 op.on("-m", "--request-min")
 
 op.parse!(ARGV, into: opts)
