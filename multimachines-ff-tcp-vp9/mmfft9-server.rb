@@ -43,7 +43,7 @@ class MmFfT9
 
   def take req
     leading = 0
-    holds = @holds.keys.sort_by {|k| @holds[k][:power] }
+    holds = @holds.keys.sort_by {|k| @holds[k][:power] }.reverse
     holds.each do |x|
       leading += @holds[x][:holds] if @holds[x][:name] != req[:name]
     end

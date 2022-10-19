@@ -5,6 +5,9 @@ require 'socket'
 require 'dbm'
 
 class MmFfT9R
+
+  CRF_DEFAULT_VALUE = 42
+
   def initialize opts
     @config_dir = ENV["XDG_CONFIG_HOME"] || "#{ENV["HOME"]}/.config"
     @xdg_state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
@@ -58,8 +61,7 @@ class MmFfT9R
     STDERR.puts "=========> Set power [#{@power} bytes in second]"
   end
 
-  def ff res
-    STDERR.puts "=========> Going ffmpeg #{res[:file]}"
+  def ff1 res, crf
     # Setup
     cmdlist = []
     cmdlist << "-nostdin"        # Do not use STDIN
@@ -68,15 +70,16 @@ class MmFfT9R
     cmdlist << "-to" << res[:ff_options]["to"] if res[:ff_options]["to"] # Time duration
     cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
     cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
-    cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
-    cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-tile-columns" << res[:ff_options]["tile"] if  res[:ff_options]["tile"]
     cmdlist << "-threads" << res[:ff_options]["threads"] if  res[:ff_options]["threads"]
     cmdlist << "-quality" << res[:ff_options]["quality"] if  res[:ff_options]["quality"]
     cmdlist << "-cpu-used" << res[:ff_options]["cpu"] if  res[:ff_options]["cpu"]
     cmdlist << "-c:v" << "libvpx-vp9"
+    cmdlist << "-b:v" << res[:ff_options]["bv"].to_s if res[:ff_options]["bv"]
+    cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
+    cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << (res[:ff_options]["crf"]&.to_s || "44")
+    cmdlist << "-crf" << crf
     cmdlist << "-c:a" << "libopus"
     cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
     cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
@@ -97,6 +100,82 @@ class MmFfT9R
         fail_reason = "ffmpeg_nonzero"
       end
     end
+
+    [time_end, fail_reason]
+  end
+
+  # 2pass encoding.
+  def ff2 res, crf
+    # Setup
+    cmdlist = []
+    cmdlist1 = []
+    cmdlist2 = []
+    cmdlist << "-nostdin"        # Do not use STDIN
+    cmdlist << "-n"              # Do not overwrite
+    cmdlist << "-ss" << res[:ff_options]["ss"].to_s if res[:ff_options]["ss"] # SKIP
+    cmdlist << "-to" << res[:ff_options]["to"].to_s if res[:ff_options]["to"] # Time duration
+    cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
+    cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
+    cmdlist << "-tile-columns" << res[:ff_options]["tile"].to_s if  res[:ff_options]["tile"]
+    cmdlist << "-threads" << res[:ff_options]["threads"].to_s if  res[:ff_options]["threads"]
+    cmdlist << "-quality" << res[:ff_options]["quality"].to_s if  res[:ff_options]["quality"]
+    cmdlist << "-cpu-used" << res[:ff_options]["cpu"].to_s if  res[:ff_options]["cpu"]
+    cmdlist << "-speed" << res[:ff_options]["speed"].to_s if  res[:ff_options]["speed"]
+    cmdlist << "-c:v" << "libvpx-vp9"
+    cmdlist << "-b:v" << res[:ff_options]["bv"].to_s if res[:ff_options]["bv"]
+    cmdlist << "-minrate" << res[:ff_options]["min"].to_s if  res[:ff_options]["min"]
+    cmdlist << "-maxrate" << res[:ff_options]["max"].to_s if  res[:ff_options]["max"]
+    cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
+    cmdlist << "-crf" << crf.to_s
+    cmdlist1 << "-pass" << "1" 
+    cmdlist2 << "-pass" << "2" 
+    cmdlist1 << "-an"
+    cmdlist1 << "-f" << "null"
+    cmdlist1 << "/dev/null"
+    cmdlist2 << "-c:a" << "libopus"
+    cmdlist2 << "-b:a" << (res[:ff_options]["ba"] || "128k")
+    cmdlist2 << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
+
+    Dir.mkdir "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
+
+    fail_reason = nil
+    if File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
+      fail_reason = "existing"
+    else
+      STDERR.puts "=======> PASS 1"
+      system("ffmpeg", *(cmdlist + cmdlist1))
+      status = $?
+
+      if status.success?
+        STDERR.puts "=======> PASS 2"
+        time_start = Time.now
+        # ffmpeg
+        system("ffmpeg", *(cmdlist + cmdlist2))
+        status = $?
+        time_end = Time.now
+        unless status.success?
+          fail_reason = "ffmpeg_nonzero_pass2"
+        end
+      else
+        fail_reason = "ffmpeg_nonzero_pass1"
+      end
+    end
+
+    [time_end, fail_reason]
+  end
+
+  def ff res
+    STDERR.puts "=========> Going ffmpeg #{res[:file]}"
+    # CRF value
+    #   Default: CRF 42 (any of bv, minrate or maxrate is not defined.)
+    crf = res[:ff_options]["crf"]
+    unless crf
+      if !res[:ff_options]["bv"] && !res[:ff_options]["minrate"] && !res[:ff_options]["maxrate"]
+        crf = CRF_DEFAULT_VALUE
+      end
+    end
+
+    time_end, fail_reason = res[:ff_options]["2pass"] ? ff2(res, crf) : ff1(res, crf)
 
     # errors
     if fail_reason
