@@ -5,7 +5,6 @@ require 'socket'
 require 'dbm'
 
 class MmFfT9R
-
   CRF_DEFAULT_VALUE = 42
 
   def initialize opts
@@ -61,7 +60,7 @@ class MmFfT9R
     STDERR.puts "=========> Set power [#{@power} bytes in second]"
   end
 
-  def ff1 res, crf
+  def ff1 res, crf: nil, bv: nil
     # Setup
     cmdlist = []
     cmdlist << "-nostdin"        # Do not use STDIN
@@ -75,7 +74,7 @@ class MmFfT9R
     cmdlist << "-quality" << res[:ff_options]["quality"] if  res[:ff_options]["quality"]
     cmdlist << "-cpu-used" << res[:ff_options]["cpu"] if  res[:ff_options]["cpu"]
     cmdlist << "-c:v" << "libvpx-vp9"
-    cmdlist << "-b:v" << res[:ff_options]["bv"].to_s if res[:ff_options]["bv"]
+    cmdlist << "-b:v" << bv if bv
     cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
@@ -93,7 +92,7 @@ class MmFfT9R
     else
       time_start = Time.now
       # ffmpeg
-      system("ffmpeg", *cmdlist)
+      system("ffmpeg", *(cmdlist.map {|i| i.to_s}))
       status = $?
       time_end = Time.now
       if status != 0
@@ -105,7 +104,7 @@ class MmFfT9R
   end
 
   # 2pass encoding.
-  def ff2 res, crf
+  def ff2 res, crf: nil, bv: nil
     # Setup
     cmdlist = []
     cmdlist1 = []
@@ -122,7 +121,7 @@ class MmFfT9R
     cmdlist << "-cpu-used" << res[:ff_options]["cpu"].to_s if  res[:ff_options]["cpu"]
     cmdlist << "-speed" << res[:ff_options]["speed"].to_s if  res[:ff_options]["speed"]
     cmdlist << "-c:v" << "libvpx-vp9"
-    cmdlist << "-b:v" << res[:ff_options]["bv"].to_s if res[:ff_options]["bv"]
+    cmdlist << "-b:v" << bv.to_s if bv
     cmdlist << "-minrate" << res[:ff_options]["min"].to_s if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"].to_s if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
@@ -143,14 +142,14 @@ class MmFfT9R
       fail_reason = "existing"
     else
       STDERR.puts "=======> PASS 1"
-      system("ffmpeg", *(cmdlist + cmdlist1))
+      system("ffmpeg", *((cmdlist + cmdlist1).map {|i| i.to_s }))
       status = $?
 
       if status.success?
         STDERR.puts "=======> PASS 2"
         time_start = Time.now
         # ffmpeg
-        system("ffmpeg", *(cmdlist + cmdlist2))
+        system("ffmpeg", *((cmdlist + cmdlist2).map {|i| i.to_s }))
         status = $?
         time_end = Time.now
         unless status.success?
@@ -174,8 +173,13 @@ class MmFfT9R
         crf = CRF_DEFAULT_VALUE
       end
     end
+    bv = res[:ff_options]["bv"] || (crf ? 0 : nil)
 
-    time_end, fail_reason = res[:ff_options]["2pass"] ? ff2(res, crf) : ff1(res, crf)
+    options = {
+      crf: crf,
+      bv: bv
+    }
+    time_end, fail_reason = res[:ff_options]["2pass"] ? ff2(res, **options) : ff1(res, **options)
 
     # errors
     if fail_reason
