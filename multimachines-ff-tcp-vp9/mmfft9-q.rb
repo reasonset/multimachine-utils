@@ -27,7 +27,14 @@ class MmFfT9Q
       File.basename(file.chomp, ".*").sub(/^.*?_/, "") + ".webm" # title_date-time[_n].mp4
     when "coloros"
       # ColorOS mobile screen recorder.
-      File.basename(file.strip, ".*").sub(/^Record_/, "") + ".webm"
+      name = File.basename(file.strip, ".*")
+      if name =~ /^Record/
+        name.sub(/^Record_/, "") + ".webm"
+      elsif name =~ /^[-0-9]+_[a-f0-9]+$/
+        name.sub(/_.*/, "") + ".webm"
+      else
+        name + ".webm"
+      end
     else
       # No filename conversion.
       File.basename(file.chomp, ".*") + ".webm"

@@ -78,7 +78,7 @@ class MmFfT9R
     cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << crf
+    cmdlist << "-crf" << crf if crf
     cmdlist << "-c:a" << "libopus"
     cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
     cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
@@ -100,7 +100,9 @@ class MmFfT9R
       end
     end
 
-    [time_end, fail_reason]
+    {time_start: time_start, time_end: time_end, fail_reason: fail_reason}
+  rescue => e
+    return {fail_reason: "Script: #{e}"}
   end
 
   # 2pass encoding.
@@ -125,7 +127,7 @@ class MmFfT9R
     cmdlist << "-minrate" << res[:ff_options]["min"].to_s if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"].to_s if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << crf.to_s
+    cmdlist << "-crf" << crf if crf
     cmdlist1 << "-pass" << "1" 
     cmdlist2 << "-pass" << "2" 
     cmdlist1 << "-an"
@@ -160,7 +162,9 @@ class MmFfT9R
       end
     end
 
-    [time_end, fail_reason]
+    {time_start: time_start, time_end: time_end, fail_reason: fail_reason}
+  rescue => e
+    return {fail_reason: "Script: #{e}"}
   end
 
   def ff res
@@ -179,7 +183,10 @@ class MmFfT9R
       crf: crf,
       bv: bv
     }
-    time_end, fail_reason = res[:ff_options]["2pass"] ? ff2(res, **options) : ff1(res, **options)
+    result = res[:ff_options]["2pass"] ? ff2(res, **options) : ff1(res, **options)
+    time_start = result[:time_start]
+    time_end = result[:time_end]
+    fail_reason = result[:fail_reason]
 
     # errors
     if fail_reason
