@@ -1,11 +1,15 @@
 ---
 # This directory path from source base directory.
 prefix: "Genshin Impact"
+#
 # Title for output sub directory.
 title: Genshin
-# Filename conversion and list style. By default, each line is source file path and don't covert filename.
+#
+# Filename conversion and list style. By default, each line is source file path and don't covert filename. Options: ReLive, ColorOS, OBS, GeneralDT, Raw (Default).
 style: ReLive
+#
 # If this value is given, queue system regards file size as actual file size / power rate.
 power_rate: 1
-# ffmpeg options. r(-r), vf(-vf), min(-minrate), max(-maxrate), tile(-tile-columns), threads(-threads), quality(-quality), cpu(-cpu-used), crf(-crf), ba(-b:a) and speed(-speed) are valid.
+#
+# ffmpeg options. r(-r), vf(-vf), tile(-tile-columns), threads(-threads), quality(-quality), cpu(-cpu-used), crf(-crf), bv(-b:v), min(-minrate), max(-maxrate), ba(-b:a) and speed(-speed) are valid.
 ff_options: {}

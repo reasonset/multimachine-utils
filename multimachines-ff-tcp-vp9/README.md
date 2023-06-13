@@ -13,7 +13,7 @@ Flexisible cluster encoding with libvpx-vp9 for Game videos.
 
 # Start server
 
-```bash
+```
 mmfft9-server.rb [--type TYPE]
 ```
 
@@ -21,7 +21,7 @@ Run `mmfft9-server.rb`.
 
 # Enqueue
 
-```bash
+```
 mmfft9-q.rb [--type TYPE]
 ```
 
@@ -36,7 +36,7 @@ This execution must be before the run is executed, but the listing may be added 
 
 # Run
 
-```bash
+```
 mmfft9-run.rb [--type TYPE] [--limit MIN] [--request-min]
 ```
 
@@ -49,6 +49,10 @@ Parallel processing can be performed by creating multiple workers, and multi-hos
 If limit is specified, only candidates that are expected to finish within the specified time (minutes) are retrieved, estimated from the calculated processing size per second.
 
 If request-min is specified, then, contrary to the usual case, the candidates with the smallest size are retrieved first.
+
+If interrupted (Ctrl+C) FFmpeg, worker sends DIE command.
+Server re-queue worker's item and delete worker.
+Worker deletes output file and exit with status code 127.
 
 # Tips
 

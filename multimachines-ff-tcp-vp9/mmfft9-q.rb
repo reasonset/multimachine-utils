@@ -29,10 +29,37 @@ class MmFfT9Q
       # ColorOS mobile screen recorder.
       name = File.basename(file.strip, ".*")
       if name =~ /^Record/
-        name.sub(/^Record_/, "") + ".webm"
+        name.sub(/^Record_/, "").sub(/_.*/, "") + ".webm"
       elsif name =~ /^[-0-9]+_[a-f0-9]+$/
         name.sub(/_.*/, "") + ".webm"
       else
+        name + ".webm"
+      end
+    when "xrecorder"
+      # XRecorder screen recorder
+      name = File.basename(file.strip, ".*")
+      if name =~ /^XRecorder_/
+        name = name.sub(/^XRecorder_/, "")
+        sprintf("%d.%02d.%02d-%02d.%02d.%02d.webm", name[4, 4], name[2, 2], name[0,2], name[9, 2], name[11, 2], name[13, 2])
+      elsif name =~ /(\d{2})(\d{2})(\d{4})_(\d{2})(\d{2})(\d{2})/
+        sprintf("%d.%02d.%02d-%02d.%02d.%02d.webm", $3, $2, $1, $4, $5, $6)
+      else
+        name + ".webm"
+      end
+    when "obs"
+      # OBS Studio.
+      File.basename(file.chomp, ".*").tr(" ", "_") + ".webm"
+    when "generaldt"
+      # General DateTime
+      name = File.basename(file.chomp, ".*")
+      if name =~ /(\d{4})[-._: ]?(\d{2})[-._: ]?(\d{2})[-._: ]?(\d{2})[-._: ]?(\d{2})[-._: ]?(\d{2})/
+        # To Second
+        "#{$1}.#{$2}.#{$3}-#{$4}.#{$5}.#{$6}.webm"
+      elsif name =~ /(\d{4})[-._: ]?(\d{2})[-._: ]?(\d{2})[-._: ]?(\d{2})[-._: ]?(\d{2})/
+        # To Minute
+        "#{$1}.#{$2}.#{$3}-#{$4}.#{$5}-#{$$}.webm"
+      else
+        # No match. use without filename conversion.
         name + ".webm"
       end
     else
@@ -81,6 +108,34 @@ class MmFfT9Q
           @list.push({
             file: source_file,
             outfile: (dest_file + ".webm"),
+            source_prefix: @config["this"]["prefix"],
+            title: @config["this"]["title"],
+            original_size: File::Stat.new(source_file).size,
+            size: size,
+            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
+          })
+        end
+      when "rclip"
+        # For rythem game best play clip.
+        # Tab separated, `source_path ss to song difficulty tags`
+        # set nil to ss or to if - is given.
+        io.each do |i|
+          source_file, ss, t, song, difficulty, tags = *i.chomp.split("\t", 6)
+          ss = nil if ss == "-"
+          t = nil if t == "-"
+          ff_clip = {}
+          ff_clip["ss"] = ss
+          ff_clip["to"] = t
+          # If ss or to given, set 10 to size to be ignored. Otherwise set size.
+          size = (ss or t) ? 10 : calc_size(source_file)
+
+          name = File.basename(source_file, ".*")
+          date = (name =~ /(\d{4})[-._: ]?(\d{2})[-._: ]?(\d{2})/ ? "#{$1}.#{$2}.#{$3}" : "")
+          outfile = [song, difficulty, date, tags].join("-")
+
+          @list.push({
+            file: source_file,
+            outfile: (outfile + ".webm"),
             source_prefix: @config["this"]["prefix"],
             title: @config["this"]["title"],
             original_size: File::Stat.new(source_file).size,

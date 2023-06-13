@@ -60,6 +60,25 @@ class MmFfT9R
     STDERR.puts "=========> Set power [#{@power} bytes in second]"
   end
 
+
+  def interrupt res
+    p "interrupt"
+    # Clean up
+    outfile = "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
+    File.delete outfile if File.exist? outfile
+
+    # Send die command
+    sock = TCPSocket.open(@config["host"], @config["port"])
+    Marshal.dump({
+      cmd: :die,
+      resource: res,
+      name: @config["hostname"],
+      worker_id: @worker_id
+    }, sock)
+    sock.close
+    exit 127
+  end
+  
   def ff1 res, crf: nil, bv: nil
     # Setup
     cmdlist = []
@@ -91,12 +110,19 @@ class MmFfT9R
       fail_reason = "existing"
     else
       time_start = Time.now
-      # ffmpeg
-      system("ffmpeg", *(cmdlist.map {|i| i.to_s}))
-      status = $?
-      time_end = Time.now
-      if status != 0
-        fail_reason = "ffmpeg_nonzero"
+      ffmpeg_inprogress = true
+      begin
+        # ffmpeg
+        system("ffmpeg", *(cmdlist.map {|i| i.to_s}))
+        ffmpeg_inprogress = false
+        status = $?
+        time_end = Time.now
+        if status != 0
+          fail_reason = "ffmpeg_nonzero"
+        end
+      ensure
+        # Interrupt action
+        interrupt res if ffmpeg_inprogress
       end
     end
 
@@ -107,7 +133,7 @@ class MmFfT9R
 
   # 2pass encoding.
   def ff2 res, crf: nil, bv: nil
-    # Setup
+    # SetupA
     cmdlist = []
     cmdlist1 = []
     cmdlist2 = []
@@ -143,22 +169,29 @@ class MmFfT9R
     if File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
       fail_reason = "existing"
     else
-      STDERR.puts "=======> PASS 1"
-      system("ffmpeg", *((cmdlist + cmdlist1).map {|i| i.to_s }))
-      status = $?
-
-      if status.success?
-        STDERR.puts "=======> PASS 2"
-        time_start = Time.now
-        # ffmpeg
-        system("ffmpeg", *((cmdlist + cmdlist2).map {|i| i.to_s }))
+      ffmpeg_inprogress = true
+      begin
+        STDERR.puts "=======> PASS 1"
+        system("ffmpeg", *((cmdlist + cmdlist1).map {|i| i.to_s }))
         status = $?
-        time_end = Time.now
-        unless status.success?
-          fail_reason = "ffmpeg_nonzero_pass2"
+
+        if status.success?
+          STDERR.puts "=======> PASS 2"
+          time_start = Time.now
+          # ffmpeg
+          system("ffmpeg", *((cmdlist + cmdlist2).map {|i| i.to_s }))
+          ffmpeg_inprogress = false
+          status = $?
+          time_end = Time.now
+          unless status.success?
+            fail_reason = "ffmpeg_nonzero_pass2"
+          end
+        else
+          fail_reason = "ffmpeg_nonzero_pass1"
         end
-      else
-        fail_reason = "ffmpeg_nonzero_pass1"
+      ensure
+        # Interrupt action
+        interrupt res if ffmpeg_inprogress
       end
     end
 
@@ -187,6 +220,7 @@ class MmFfT9R
     time_start = result[:time_start]
     time_end = result[:time_end]
     fail_reason = result[:fail_reason]
+    p "OK FF IS END"
 
     # errors
     if fail_reason
@@ -257,8 +291,9 @@ class MmFfT9R
       if File.exist? "#{@state_dir}/exit"
         Marshal.dump({
           cmd: :bye,
-          name: @config["hostname"]
-        })
+          name: @config["hostname"],
+          worker_id: @worker_id
+        }, sock)
         break
       else
         # Request next one.

@@ -2,13 +2,24 @@
 default:
   # Output directory: out videos $outdir/$title/$filename.webm
   outdir: /home/jrh/GameVideos/Play
+  #
   # Source directory: source videos $sourcedir/$prefix/$filepath_on_list
   sourcedir: /home/jrh/GameVideos/Recorded
+  #
   # Server host address.
   host: 192.168.1.64
+  #
   # Own hostname. I recommend to use hostname.
   hostname: jrh_desktop1
+  #
   # Server port number.
   port: 44000
+  #
   # At a minimum, the number of ffmpeg threads that this host would run. If a host has fewer remaining candidates than the number held by hosts faster than itself, it will not be processed.
   holds: 8
+  #
+  # Power is not calculated and is assumed to have the power specified here.
+  # presumptive_power: 1000000
+  #
+  # Power is calculated from the average of the specific titles specified here, rather than the average of the whole.
+  # standard: Genshin
