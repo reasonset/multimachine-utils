@@ -62,6 +62,14 @@ class MmFfT9Q
         # No match. use without filename conversion.
         name + ".webm"
       end
+    when "origin"
+      # Get file datetime
+      timestamp = nil
+      begin
+        timestamp = File.birthtime(File.join(@config["sourcedir"], @config["this"]["prefix"], file.chomp))
+      end
+
+      timestamp.strftime("%Y.%m.%d-%H.%M.%S.webm")
     else
       # No filename conversion.
       File.basename(file.chomp, ".*") + ".webm"

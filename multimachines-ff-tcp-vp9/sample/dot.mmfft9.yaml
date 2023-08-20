@@ -5,7 +5,7 @@ prefix: "Genshin Impact"
 # Title for output sub directory.
 title: Genshin
 #
-# Filename conversion and list style. By default, each line is source file path and don't covert filename. Options: ReLive, ColorOS, OBS, GeneralDT, Raw (Default).
+# Filename conversion and list style. By default, each line is source file path and don't covert filename. Options: ReLive, ColorOS, OBS, GeneralDT, Origin, Raw (Default).
 style: ReLive
 #
 # If this value is given, queue system regards file size as actual file size / power rate.

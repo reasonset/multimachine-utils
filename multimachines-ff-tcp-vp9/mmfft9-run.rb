@@ -220,7 +220,6 @@ class MmFfT9R
     time_start = result[:time_start]
     time_end = result[:time_end]
     fail_reason = result[:fail_reason]
-    p "OK FF IS END"
 
     # errors
     if fail_reason
