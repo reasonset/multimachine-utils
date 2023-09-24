@@ -77,6 +77,9 @@ class MmFfT9Q
   end
 
   def calc_size file
+    rate = 1.0
+    if @config["use_calc_rate"]
+
     (File::Stat.new(file.chomp).size / (@config["this"]["power_rate"] || 1.0)).to_i
   end
 

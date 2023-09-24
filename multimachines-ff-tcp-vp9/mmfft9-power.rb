@@ -10,7 +10,9 @@ class MmFfT9Pw
     @avg = {}
   end
 
-  def calc title
+  attr :title, true
+
+  def calc
     DBM.open("#{@state_dir}/title_power") do |dbm|
       dbm.each do |k, v|
         begin
@@ -26,13 +28,16 @@ class MmFfT9Pw
         end
       end
     end
+    self
+  end
 
+  def out
     if @avg.empty?
       abort "No power is recorded yet."
     end
 
-    target_power = if title
-      @avg[title].to_f or abort "No power recorded for #{title}"
+    target_power = if @title
+      @avg[@title].to_f or abort "No power recorded for #{@title}"
     else
       (@avg.each_value.sum / @avg.length).to_f
     end
@@ -44,25 +49,28 @@ class MmFfT9Pw
     end
   end
 
-  def delete title
-    abort "No title given for delete." unless title
+  def delete
+    abort "No title given for delete." unless @title
 
     DBM.open("#{@state_dir}/title_power") do |dbm|
-      abort "No power recorded for #{title}" unless dbm.key?(title)
-      dbm.delete title
+      abort "No power recorded for #{@title}" unless dbm.key?(@title)
+      dbm.delete @title
     end
   end
 end
 
-op = OptionParser.new
-opts = {}
-op.on("-r RATE", "--drop-rate")
-op.on("-D", "--delete")
-op.parse!(ARGV, into: opts)
+if __FILE__ == $0
+  op = OptionParser.new
+  opts = {}
+  op.on("-r RATE", "--drop-rate")
+  op.on("-D", "--delete")
+  op.parse!(ARGV, into: opts)
 
-mmff = MmFfT9Pw.new(opts)
-if opts[:delete]
-  mmff.delete ARGF.shift
-else
-  mmff.calc ARGV.shift
+  mmff = MmFfT9Pw.new(opts)
+  mmff.title = ARGV.shift
+  if opts[:delete]
+    mmff.delete
+  else
+    mmff.calc.out
+  end
 end

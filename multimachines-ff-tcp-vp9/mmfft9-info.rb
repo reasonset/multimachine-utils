@@ -33,9 +33,9 @@ class MmFfT9Info
     return total unless @hr
     case
     when total >= 1_000_000_000_000_000
-      (total / 1_000_000_000_000_000).to_s + "PB"
+      sprintf("%.2fPB", total / 1_000_000_000_000_000.0)
     when total >= 1_000_000_000_000
-      (total / 1_000_000_000_000).to_s + "TB"
+      sprintf("%.1fTB", total / 1_000_000_000_000.0)
     when total >= 1_000_000_000
       (total / 1_000_000_000).to_s + "GB"
     when total >= 1_000_000
@@ -50,6 +50,19 @@ class MmFfT9Info
             (sec / (60 * 60)),
             (sec % (60 * 60) / 60),
             (sec % 60))
+  end
+
+  def time_format2(sec)
+    sprintf("%ddays %d:%02d:%02d",
+            (sec / (60 * 60 * 24)),
+            (sec % (60 * 60 * 24) / (60 * 60)),
+            (sec % (60 * 60) / 60),
+            (sec % 60))
+  end
+
+  def duration info, total_size
+    total_power = info[:hosts].sum {|k, v| info[:holds][k][:power] * v }
+    time_format2(total_size / total_power)
   end
 
   def fprint_info info
@@ -74,6 +87,7 @@ class MmFfT9Info
     info[:queue_length] = info[:queue].length
     info[:num_of_workers] = info[:workers].length
     info[:worker_total_size] = hr info[:workers].sum {|k, v| v[:processing][:size] }
+    info[:estimated_duration] = duration info, total_size
 
     unless @full_queue
       info[:queue] = info[:queue].first 5
