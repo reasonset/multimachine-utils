@@ -2,6 +2,7 @@
 require 'yaml'
 require 'optparse'
 require 'socket'
+require_relative 'mmfft9-power.rb'
 
 class MmFfT9Q
   def initialize opts
@@ -76,11 +77,21 @@ class MmFfT9Q
     end
   end
 
-  def calc_size file
+  def create_rate
     rate = 1.0
-    if @config["use_calc_rate"]
+    if @config["this"]["power_rate"]
+      rate = @config["this"]["power_rate"]
+    elsif @config["use_calc_rate"]
+      calc = MmFfT9Pw.new({"drop-rate": @config["drop_rate"], "standard-title": @config["standard"]})
+      calc.calc
+      rate = calc.rate @config["this"]["title"]
+    end
+  
+    @rate = rate
+  end  
 
-    (File::Stat.new(file.chomp).size / (@config["this"]["power_rate"] || 1.0)).to_i
+  def calc_size file
+    (File::Stat.new(file.chomp).size / @rate).to_i
   end
 
   def load_list io
@@ -88,6 +99,7 @@ class MmFfT9Q
       @list = YAML.load io
     else
       @list = []
+      create_rate
       case @config["this"]["style"]&.downcase
       when "named"
         # Tab separated, source_path\tdest_filename

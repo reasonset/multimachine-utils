@@ -3,6 +3,7 @@ require 'yaml'
 require 'optparse'
 require 'socket'
 require 'dbm'
+require_relative 'mmfft9-power.rb'
 
 class MmFfT9R
   CRF_DEFAULT_VALUE = 42
@@ -25,7 +26,8 @@ class MmFfT9R
 
   def load_config type
     config = YAML.load(File.read("#{@config_dir}/reasonset/mmfft9.yaml"))
-    @config = config[type&.to_s || "default"]
+    @type = type&.to_s || "default"
+    @config = config[@type]
     abort "No such type" unless @config
   end
 
@@ -34,26 +36,9 @@ class MmFfT9R
     @power = if @config["presumptive_power"]
       @config["presumptive_power"]
     elsif File.exist? "#{@state_dir}/power"
-      cost_list = []
-      File.open "#{@state_dir}/power" do |f|
-        f.flock File::LOCK_SH
-        f.each do |line|
-          i = line.chomp.split("\t")
-          standard_title = @config["standard"]
-          if !standard_title || standard_title == i[1]
-            cost_list.push(i[0].to_i)
-          end
-        end
-        f.flock File::LOCK_EX
-      end
-      perc = cost_list.length / 10
-      valid_list = cost_list.sort.drop(perc).reverse.drop(perc)
-
-      if !valid_list || valid_list.empty?
-        0
-      else
-        valid_list.sum / valid_list.length
-      end
+      calc = MmFfT9Pw.new({"drop-rate": @config["drop_rate"], "standard-title": @config["standard"]})
+      calc.calc
+      calc.power
     else
       0
     end
@@ -97,7 +82,7 @@ class MmFfT9R
     cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << crf if crf
+    cmdlist << "-crf" << crf if crf1
     cmdlist << "-c:a" << "libopus"
     cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
     cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
