@@ -58,7 +58,7 @@ class MmFfT9Pw
   end
 
   def power
-    @standard_title ? @avg[@standard_title] : @valid_avg
+    @standard_title ? @avg[@standard_title] || 0 : @valid_avg
   end
 
   def out
