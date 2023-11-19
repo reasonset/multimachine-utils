@@ -179,6 +179,7 @@ class MmFfT9R
             fail_reason = "ffmpeg_nonzero_pass2"
           end
         else
+          ffmpeg_inprogress = false
           fail_reason = "ffmpeg_nonzero_pass1"
         end
       ensure
