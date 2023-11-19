@@ -8,6 +8,7 @@ class MmFfT9Pw
     @state_dir = "#{@xdg_state_dir}/reasonset/mmfft9"
     @drop_rate = opts[:"drop-rate"]&.to_f || 0.4
     @standard_title = opts[:"standard-title"]
+    @type = opts[:type]&.to_s || "default"
     @avg = {}
   end
 
@@ -15,7 +16,7 @@ class MmFfT9Pw
   attr :valid_avg
 
   def calc
-    DBM.open("#{@state_dir}/title_power") do |dbm|
+    DBM.open("#{@state_dir}/#{@type}-title_power") do |dbm|
       overall_list = []
       dbm.each do |k, v|
         begin
@@ -77,7 +78,7 @@ class MmFfT9Pw
   def delete
     abort "No title given for delete." unless @title
 
-    DBM.open("#{@state_dir}/title_power") do |dbm|
+    DBM.open("#{@state_dir}/#{@type}-title_power") do |dbm|
       abort "No power recorded for #{@title}" unless dbm.key?(@title)
       dbm.delete @title
     end
@@ -87,6 +88,7 @@ end
 if __FILE__ == $0
   op = OptionParser.new
   opts = {}
+  op.on("-t TYPE", "--type")
   op.on("-r RATE", "--drop-rate")
   op.on("-D", "--delete")
   op.parse!(ARGV, into: opts)

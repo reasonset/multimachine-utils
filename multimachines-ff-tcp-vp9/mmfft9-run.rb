@@ -24,9 +24,17 @@ class MmFfT9R
     @worker_id = sprintf("%d@%s", Process.pid, @config["hostname"])
   end
 
+  def chdir
+    dirname = Time.now.strftime("%s.#{$$}")
+
+    Dir.mkdir(File.join(@state_dir, "run")) unless File.exist? File.join(@state_dir, "run")
+    Dir.mkdir File.join(@state_dir, "run", dirname)
+    Dir.chdir File.join(@state_dir, "run", dirname)
+  end
+
   def load_config type
     config = YAML.load(File.read("#{@config_dir}/reasonset/mmfft9.yaml"))
-    @type = type&.to_s || "default"
+    @type = type&.to_s || "default" 
     @config = config[@type]
     abort "No such type" unless @config
   end
@@ -44,7 +52,6 @@ class MmFfT9R
     end
     STDERR.puts "=========> Set power [#{@power} bytes in second]"
   end
-
 
   def interrupt res
     p "interrupt"
@@ -82,7 +89,7 @@ class MmFfT9R
     cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << crf if crf1
+    cmdlist << "-crf" << crf if crf
     cmdlist << "-c:a" << "libopus"
     cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
     cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
@@ -260,7 +267,7 @@ class MmFfT9R
     # Record title power. It wants 1MiB source size at least.
     if res[:size] > (1024 * 1024)
       STDERR.puts "=======> Writing title power #{res[:original_size]}/#{elapsed} for #{res[:source_prefix]}"
-      DBM.open("#{@state_dir}/title_power") do |dbm|
+      DBM.open("#{@state_dir}/#{@type}-title_power") do |dbm|
         power_list = dbm.key?(res[:source_prefix]) ? Marshal.load(dbm[res[:source_prefix]]) : []
         power_list.push(res[:original_size] / elapsed)
         dbm[res[:source_prefix]] = Marshal.dump(power_list)
@@ -311,4 +318,5 @@ op.on("-m", "--request-min")
 op.parse!(ARGV, into: opts)
 
 mmff = MmFfT9R.new(opts)
+mmff.chdir
 mmff.connect

@@ -13,7 +13,8 @@ class MmFfT9Q
   def load_config type
     config_dir = ENV["XDG_CONFIG_HOME"] || "#{ENV["HOME"]}/.config"
     config = YAML.load(File.read("#{config_dir}/reasonset/mmfft9.yaml"))
-    @config = config[type&.to_s || "default"]
+    @type = type&.to_s || "default"
+    @config = config[@type]
     abort "No such type" unless @config
 
     unless @opts[:resume]
@@ -82,7 +83,7 @@ class MmFfT9Q
     if @config["this"]["power_rate"]
       rate = @config["this"]["power_rate"]
     elsif @config["use_calc_rate"]
-      calc = MmFfT9Pw.new({"drop-rate": @config["drop_rate"], "standard-title": @config["standard"]})
+      calc = MmFfT9Pw.new({"drop-rate": @config["drop_rate"], "standard-title": @config["standard"], type: @type})
       calc.calc
       rate = calc.rate @config["this"]["title"]
     end
@@ -126,7 +127,7 @@ class MmFfT9Q
           ff_clip["ss"] = ss
           ff_clip["to"] = t
           # If ss or to given, set 10 to size to be ignored. Otherwise set size.
-          size = (ss or t) ? 10 : calc_size(source_file)
+          size = (ss or t) ? (@config["this"]["hugeclip"] ? calc_size(source_file) : 10) : calc_size(source_file)
 
           @list.push({
             file: source_file,

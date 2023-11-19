@@ -60,9 +60,22 @@ class MmFfT9Info
             (sec % 60))
   end
 
+  # sum(worker_size / elapsed_time_rate)
+  def worker_queue_left workers, power_map
+    size = 0
+    workers.each do |k, v|
+      this_size = v[:processing][:size]
+      elapsed = @now - v[:atime]
+      dur = (v[:processing][:size] / power_map[k.sub(/.*?@/, "")] rescue 0)
+      next if elapsed > dur
+      size += this_size * ( 1 - elapsed / dur)
+    end
+    size
+  end
+
   def duration info, total_size
     total_power = info[:hosts].sum {|k, v| info[:holds][k][:power] * v }
-    time_format2(total_size / total_power)
+    time_format2(total_size / total_power) rescue 0
   end
 
   def fprint_info info
@@ -86,8 +99,9 @@ class MmFfT9Info
     info[:unknown_size_items] = unknown_num
     info[:queue_length] = info[:queue].length
     info[:num_of_workers] = info[:workers].length
-    info[:worker_total_size] = hr info[:workers].sum {|k, v| v[:processing][:size] }
-    info[:estimated_duration] = duration info, total_size
+    worker_size = info[:workers].sum {|k, v| v[:processing][:size] }
+    info[:worker_total_size] = hr worker_size
+    info[:estimated_duration] = duration info, (total_size + worker_queue_left(info[:workers], power_map))
 
     unless @full_queue
       info[:queue] = info[:queue].first 5
