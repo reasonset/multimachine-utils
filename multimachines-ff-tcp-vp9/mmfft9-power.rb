@@ -33,7 +33,7 @@ class MmFfT9Pw
         end
       end
 
-      if power_list.empty?
+      if overall_list.empty?
         @valid_avg = 0
       else
         all_avg = overall_list.sum / overall_list.length
