@@ -33,12 +33,16 @@ class MmFfT9Pw
         end
       end
 
-      all_avg = overall_list.sum / overall_list.length
-      power_list = overall_list.drop_while {|i| i < (all_avg - all_avg * @drop_rate) }
-      power_list = overall_list.reverse.drop_while {|i| i > (all_avg + all_avg * @drop_rate) }
-      valid_avg = power_list.empty? ? 0 : power_list.sum / power_list.length
-
-      @valid_avg = valid_avg
+      if power_list.empty?
+        @valid_avg = 0
+      else
+        all_avg = overall_list.sum / overall_list.length
+        power_list = overall_list.drop_while {|i| i < (all_avg - all_avg * @drop_rate) }
+        power_list = overall_list.reverse.drop_while {|i| i > (all_avg + all_avg * @drop_rate) }
+        valid_avg =  power_list.sum / power_list.length
+  
+        @valid_avg = valid_avg
+      end
     end
     self
   end
