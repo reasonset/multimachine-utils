@@ -3,6 +3,7 @@ require 'yaml'
 require 'optparse'
 require 'socket'
 require 'dbm'
+require 'fileutils'
 require_relative 'mmfft9-power.rb'
 
 class MmFfT9R
@@ -12,6 +13,8 @@ class MmFfT9R
     @config_dir = ENV["XDG_CONFIG_HOME"] || "#{ENV["HOME"]}/.config"
     @xdg_state_dir = ENV["XDG_STATE_HOME"] || "#{ENV["HOME"]}/.local/state"
     @state_dir = "#{@xdg_state_dir}/reasonset/mmfft9"
+    @ccwd = nil
+    @cwd = Dir.pwd
     load_config opts[:type]
     calc_power
     @limit = nil
@@ -29,7 +32,7 @@ class MmFfT9R
 
     Dir.mkdir(File.join(@state_dir, "run")) unless File.exist? File.join(@state_dir, "run")
     Dir.mkdir File.join(@state_dir, "run", dirname)
-    Dir.chdir File.join(@state_dir, "run", dirname)
+    Dir.chdir File.join(@state_dir, "run", dirname) && @ccwd = Dir.pwd
   end
 
   def load_config type
@@ -306,6 +309,9 @@ class MmFfT9R
       end
     end
 
+  ensure
+    Dir.chdir @cwd
+    FileUtils.rm_rf @ccwd
   end
 end
 
