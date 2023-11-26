@@ -311,7 +311,7 @@ class MmFfT9R
 
   ensure
     Dir.chdir @cwd
-    FileUtils.rm_rf @ccwd
+    FileUtils.rm_rf @ccwd if @ccwd && File.exist? @ccwd
   end
 end
 
