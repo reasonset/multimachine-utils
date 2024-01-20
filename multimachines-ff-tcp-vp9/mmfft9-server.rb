@@ -48,7 +48,8 @@ class MmFfT9
     holds = @holds.keys.sort_by {|k| @holds[k][:power] }.reverse
     pp holds if @verbose
     holds.each do |x|
-      leading += @holds[x][:holds] if @holds[x][:name] != req[:name]
+      break if @holds[x][:name] == req[:name]
+      leading += @holds[x][:holds]
     end
     pp leading if @verbose
 

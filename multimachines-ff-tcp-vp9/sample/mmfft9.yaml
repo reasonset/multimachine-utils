@@ -17,9 +17,11 @@ default:
   #
   # At a minimum, the number of ffmpeg threads that this host would run. If a host has fewer remaining candidates than the number held by hosts faster than itself, it will not be processed.
   holds: 8
+  # Values that are more than a percentage drop-rate away from the mean are excluded from the power calculation. Default value is 0.4.
+  #drop_rate: 0.2
   #
   # Power is not calculated and is assumed to have the power specified here.
-  # presumptive_power: 1000000
+  #presumptive_power: 1000000
   #
   # Power is calculated from the average of the specific titles specified here, rather than the average of the whole.
-  # standard: Genshin
+  #standard: Genshin

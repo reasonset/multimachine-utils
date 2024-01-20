@@ -31,8 +31,8 @@ class MmFfT9R
     dirname = Time.now.strftime("%s.#{$$}")
 
     Dir.mkdir(File.join(@state_dir, "run")) unless File.exist? File.join(@state_dir, "run")
-    Dir.mkdir File.join(@state_dir, "run", dirname)
-    Dir.chdir File.join(@state_dir, "run", dirname) && @ccwd = Dir.pwd
+    Dir.mkdir(File.join(@state_dir, "run", dirname))
+    Dir.chdir(File.join(@state_dir, "run", dirname)) && @ccwd = Dir.pwd
   end
 
   def load_config type
@@ -98,7 +98,9 @@ class MmFfT9R
     cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
     cmdlist << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
+    
     Dir.mkdir "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
+    pp :flag
 
     fail_reason = nil
     if File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
@@ -311,7 +313,7 @@ class MmFfT9R
 
   ensure
     Dir.chdir @cwd
-    FileUtils.rm_rf @ccwd
+    # FileUtils.rm_rf @ccwd
   end
 end
 

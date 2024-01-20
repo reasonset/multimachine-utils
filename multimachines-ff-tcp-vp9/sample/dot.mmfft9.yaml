@@ -11,5 +11,11 @@ style: ReLive
 # If this value is given, queue system regards file size as actual file size / power rate.
 power_rate: 1
 #
+# If the value of style is clip and the value of hugeclip is true, the original file size is used even if a clip section is given. Otherwise, if an interval is given, it is treated as 10 bytes.
+#This is useful when an interval is specified but you want to cut off a portion of the video before or after instead of clipping a small portion of the video, preventing the clip from being considered small and being put off.
+#
+hugeclip: false
+#
 # ffmpeg options. r(-r), vf(-vf), tile(-tile-columns), threads(-threads), quality(-quality), cpu(-cpu-used), crf(-crf), bv(-b:v), min(-minrate), max(-maxrate), ba(-b:a) and speed(-speed) are valid.
+# If 2pass is true, use 2-pass encoding.
 ff_options: {}
