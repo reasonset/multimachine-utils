@@ -99,11 +99,13 @@ class MmFfT9R
     cmdlist << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
     
-    Dir.mkdir "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
+    FileUtils.mkdir_p "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
     pp :flag
 
     fail_reason = nil
-    if File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
+    if !File.exist?("#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}")
+      fail_reason = "source_not_exist"
+    elsif File.exist? "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
       fail_reason = "existing"
     else
       time_start = Time.now
