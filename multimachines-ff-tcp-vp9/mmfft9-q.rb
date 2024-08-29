@@ -20,6 +20,8 @@ class MmFfT9Q
     unless @opts[:resume]
       @config["this"] = YAML.load(File.read("./.mmfft9.yaml"))
     end
+
+    @title = @opts[:title] || @config["this"]["title"] rescue nil
   end
 
   def outfile_format file
@@ -68,7 +70,7 @@ class MmFfT9Q
       # Get file datetime
       timestamp = nil
       begin
-        timestamp = File.birthtime(File.join(@config["sourcedir"], @config["this"]["prefix"], file.chomp))
+        timestamp = File.birthtime(File.join(@config["sourcedir"], source_prefix, file.chomp))
       end
 
       timestamp.strftime("%Y.%m.%d-%H.%M.%S.webm")
@@ -85,7 +87,7 @@ class MmFfT9Q
     elsif @config["use_calc_rate"]
       calc = MmFfT9Pw.new({"drop-rate": @config["drop_rate"], "standard-title": @config["standard"], type: @type})
       calc.calc
-      rate = calc.rate @config["this"]["title"]
+      rate = calc.rate @title
     end
   
     @rate = rate
@@ -101,6 +103,7 @@ class MmFfT9Q
     else
       @list = []
       create_rate
+      source_prefix = @config["this"]["prefix"] || "."
       case @config["this"]["style"]&.downcase
       when "named"
         # Tab separated, source_path\tdest_filename
@@ -109,8 +112,8 @@ class MmFfT9Q
           @list.push({
             file: source_file,
             outfile: (dest_file + ".webm"),
-            source_prefix: @config["this"]["prefix"],
-            title: @config["this"]["title"],
+            source_prefix: source_prefix,
+            title: @title,
             size: calc_size(i),
             original_size: File::Stat.new(i.chomp).size,
             ff_options: @config["this"]["ff_options"] || {}
@@ -132,8 +135,8 @@ class MmFfT9Q
           @list.push({
             file: source_file,
             outfile: (dest_file + ".webm"),
-            source_prefix: @config["this"]["prefix"],
-            title: @config["this"]["title"],
+            source_prefix: source_prefix,
+            title: @title,
             original_size: File::Stat.new(source_file).size,
             size: size,
             ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
@@ -160,8 +163,8 @@ class MmFfT9Q
           @list.push({
             file: source_file,
             outfile: (outfile + ".webm"),
-            source_prefix: @config["this"]["prefix"],
-            title: @config["this"]["title"],
+            source_prefix: source_prefix,
+            title: @title,
             original_size: File::Stat.new(source_file).size,
             size: size,
             ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
@@ -172,8 +175,8 @@ class MmFfT9Q
           @list.push({
             file: i.chomp,
             outfile: outfile_format(i),
-            source_prefix: @config["this"]["prefix"],
-            title: @config["this"]["title"],
+            source_prefix: source_prefix,
+            title: @title,
             size: calc_size(i),
             original_size: File::Stat.new(i.chomp).size,
             ff_options: @config["this"]["ff_options"] || {}
@@ -197,6 +200,7 @@ op = OptionParser.new
 opts = {}
 op.on("-t TYPE", "--type")
 op.on("-r", "--resume")
+op.on("-n TITLE", "--title")
 
 op.parse!(ARGV, into: opts)
 

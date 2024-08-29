@@ -77,30 +77,55 @@ class MmFfT9R
   def ff1 res, crf: nil, bv: nil
     # Setup
     cmdlist = []
+
+    # Global Options
     cmdlist << "-nostdin"        # Do not use STDIN
     cmdlist << "-n"              # Do not overwrite
+
+    # Input File Options
     cmdlist << "-ss" << res[:ff_options]["ss"] if res[:ff_options]["ss"] # SKIP
     cmdlist << "-to" << res[:ff_options]["to"] if res[:ff_options]["to"] # Time duration
     cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
+
+    # Output File Options
     cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
     cmdlist << "-tile-columns" << res[:ff_options]["tile"] if  res[:ff_options]["tile"]
     cmdlist << "-threads" << res[:ff_options]["threads"] if  res[:ff_options]["threads"]
     cmdlist << "-quality" << res[:ff_options]["quality"] if  res[:ff_options]["quality"]
     cmdlist << "-cpu-used" << res[:ff_options]["cpu"] if  res[:ff_options]["cpu"]
-    cmdlist << "-c:v" << "libvpx-vp9"
-    cmdlist << "-b:v" << bv if bv
-    cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
-    cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
-    cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
-    cmdlist << "-crf" << crf if crf
-    cmdlist << "-c:a" << "libopus"
-    cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
-    cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
+
+    if res[:ff_options]["vcodec"] == "svt-av1"
+      cmdlist << "-c:v" << "libsvtav1"
+      cmdlist << "-crf" << crf if crf
+      cmdlist << "-b:v" << res[:ff_options]["bv"] if res[:ff_options]["bv"]
+      cmdlist << "-svtav1-params" << "tbr=#{res[:ff_options]["tbr"]}" if res[:ff_options]["tbr"]
+      cmdlist << "-svtav1-params" << "mbr=#{res[:ff_options]["max"]}" if res[:ff_options]["max"]
+    elsif res[:ff_options]["vcodec"] == "amf-av1"
+      cmdlist << "-c:v" << "av1_amf"
+      cmdlist << "-qmin" << res[:ff_options]["qmin"] if res[:ff_options]["qmin"]
+      cmdlist << "-qmax" << res[:ff_options]["qmax"] if res[:ff_options]["qmax"]
+      cmdlist << "-b:v" << res[:ff_options]["bv"] if res[:ff_options]["bv"]
+      cmdlist << "-quality" << res[:ff_options]["quality"] if res[:ff_options]["quality"]
+    else
+      if res[:ff_options]["vcodec"] == "av1"
+        cmdlist << "-c:v" << "libaom-av1"
+      else
+        cmdlist << "-c:v" << "libvpx-vp9"
+      end
+      cmdlist << "-b:v" << bv if bv
+      cmdlist << "-minrate" << res[:ff_options]["min"] if  res[:ff_options]["min"]
+      cmdlist << "-maxrate" << res[:ff_options]["max"] if  res[:ff_options]["max"]
+      cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
+      cmdlist << "-crf" << crf if crf
+      cmdlist << "-c:a" << "libopus"
+      cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
+      cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
+    end
+
     cmdlist << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
     
     FileUtils.mkdir_p "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"
-    pp :flag
 
     fail_reason = nil
     if !File.exist?("#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}")
@@ -132,27 +157,41 @@ class MmFfT9R
 
   # 2pass encoding.
   def ff2 res, crf: nil, bv: nil
-    # SetupA
+    # Setup
     cmdlist = []
     cmdlist1 = []
     cmdlist2 = []
+
+    # Global Options
     cmdlist << "-nostdin"        # Do not use STDIN
     cmdlist << "-n"              # Do not overwrite
+
+    # Input File Options
     cmdlist << "-ss" << res[:ff_options]["ss"].to_s if res[:ff_options]["ss"] # SKIP
     cmdlist << "-to" << res[:ff_options]["to"].to_s if res[:ff_options]["to"] # Time duration
     cmdlist << "-i" << "#{@config["sourcedir"]}/#{res[:source_prefix]}/#{res[:file]}"
+
+    # Output File Options
     cmdlist << "-vf" << res[:ff_options]["vf"] if  res[:ff_options]["vf"]
     cmdlist << "-tile-columns" << res[:ff_options]["tile"].to_s if  res[:ff_options]["tile"]
     cmdlist << "-threads" << res[:ff_options]["threads"].to_s if  res[:ff_options]["threads"]
     cmdlist << "-quality" << res[:ff_options]["quality"].to_s if  res[:ff_options]["quality"]
     cmdlist << "-cpu-used" << res[:ff_options]["cpu"].to_s if  res[:ff_options]["cpu"]
     cmdlist << "-speed" << res[:ff_options]["speed"].to_s if  res[:ff_options]["speed"]
-    cmdlist << "-c:v" << "libvpx-vp9"
+
+    if res[:ff_options]["vcodec"] == "av1"
+      cmdlist << "-c:v" << "libaom-av1"
+    else
+      cmdlist << "-c:v" << "libvpx-vp9"
+    end
+
     cmdlist << "-b:v" << bv.to_s if bv
     cmdlist << "-minrate" << res[:ff_options]["min"].to_s if  res[:ff_options]["min"]
     cmdlist << "-maxrate" << res[:ff_options]["max"].to_s if  res[:ff_options]["max"]
     cmdlist << "-r" << res[:ff_options]["r"].to_s if res[:ff_options]["r"]
     cmdlist << "-crf" << crf if crf
+
+    # Variable for pass
     cmdlist1 << "-pass" << "1" 
     cmdlist2 << "-pass" << "2" 
     cmdlist1 << "-an"
