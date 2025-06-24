@@ -9,6 +9,7 @@ class MmFfT9Pw
     @drop_rate = opts[:"drop-rate"]&.to_f || 0.4
     @standard_title = opts[:"standard-title"]
     @type = opts[:type]&.to_s || "default"
+    @opts = opts
     @avg = {}
   end
 
@@ -72,10 +73,35 @@ class MmFfT9Pw
       (@avg.each_value.sum / @avg.length).to_f
     end
 
-    abort "No valid target average power." if target_power.zero?
+    abort "No valid target mean power." if target_power.zero?
 
-    @avg.each do |k, v|
-      printf("%s: %.4f (%d)\n", k, (v / target_power), v)
+    keys = nil
+    if @opts[:"sort-by-power"]
+      keys = @avg.each_key.sort_by {|k| @avg[k] }
+    else
+      keys = @avg.each_key.sort_by {|k| k }
+    end
+
+    keys.each do |k|
+      if @opts[:color]
+        rate = (@avg[k] / target_power)
+        ccode = if rate < 0.5
+                  "\e[31m"
+                elsif rate < 0.75
+                  "\e[35m"
+                elsif rate < 1
+                  "\e[33m"
+                elsif rate < 1.5
+                  "\e[36m"
+                elsif rate < 2
+                  "\e[32m"
+                else
+                  "\e[34m"
+                end
+        printf("\e[1m%s\e[0m: %s%.4f\e[0m (%d)\n", k, ccode, rate, @avg[k])
+      else
+        printf("%s: %.4f (%d)\n", k, (@avg[k] / target_power), @avg[k])
+      end
     end
   end
 
@@ -94,13 +120,15 @@ if __FILE__ == $0
   opts = {}
   op.on("-t TYPE", "--type")
   op.on("-r RATE", "--drop-rate")
+  op.on("-p", "--sort-by-power")
+  op.on("-c", "--color")
   op.on("-D", "--delete")
   op.parse!(ARGV, into: opts)
 
   mmff = MmFfT9Pw.new(opts)
   mmff.title = ARGV.shift
   if opts[:delete]
-    mmff.delete
+  mmff.delete
   else
     mmff.calc.out
   end
