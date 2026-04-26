@@ -3,6 +3,7 @@ require 'yaml'
 require 'optparse'
 require 'socket'
 require_relative 'mmfft9-power.rb'
+require 'json'
 
 class MmFfT9Q
   def initialize opts
@@ -22,6 +23,28 @@ class MmFfT9Q
     end
 
     @title = @opts[:title] || @config["this"]["title"] rescue nil
+  end
+
+  def probe file
+    file = file.chomp
+    IO.popen(["ffprobe", "-of", "json", "-show_streams", file]) do |io|
+      return JSON.load io
+    end
+  end
+
+  def gain file
+    file = file.chomp
+    return nil unless @config["this"]["maximize"]
+    IO.popen(["ffmpeg", "-i", file, "-vn", "-af", "volumedetect", "-f", "null", "-"], err: [:child, :out]) do |io|
+      result = io.read
+      result =~ /max_volume: (-?[0-9.]+) dB/
+      db = $1.to_f
+      if db < -0.1
+        sprintf("%.1fdB", (db + 0.1).abs)
+      else
+        nil
+      end
+    end
   end
 
   def outfile_format file
@@ -114,9 +137,11 @@ class MmFfT9Q
             outfile: (dest_file + ".webm"),
             source_prefix: source_prefix,
             title: @title,
-            size: calc_size(i),
-            original_size: File::Stat.new(i.chomp).size,
-            ff_options: @config["this"]["ff_options"] || {}
+            size: calc_size(source_file),
+            original_size: File::Stat.new(source_file).size,
+            ff_options: @config["this"]["ff_options"] || {},
+            source_meta: probe(source_file),
+            gain: gain(source_file)
           })
         end
       when "clip"
@@ -139,7 +164,9 @@ class MmFfT9Q
             title: @title,
             original_size: File::Stat.new(source_file).size,
             size: size,
-            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
+            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip),
+            source_meta: probe(source_file),
+            gain: gain(source_file)
           })
         end
       when "rclip"
@@ -167,7 +194,9 @@ class MmFfT9Q
             title: @title,
             original_size: File::Stat.new(source_file).size,
             size: size,
-            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip)
+            ff_options: (@config["this"]["ff_options"] || {}).merge(ff_clip),
+            source_meta: probe(source_file),
+            gain: gain(source_file)
           })
         end
       else
@@ -179,7 +208,9 @@ class MmFfT9Q
             title: @title,
             size: calc_size(i),
             original_size: File::Stat.new(i.chomp).size,
-            ff_options: @config["this"]["ff_options"] || {}
+            ff_options: @config["this"]["ff_options"] || {},
+            source_meta: probe(i),
+            gain: gain(i)
           })
         end
       end

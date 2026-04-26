@@ -19,3 +19,6 @@ hugeclip: false
 # ffmpeg options. r(-r), vf(-vf), tile(-tile-columns), threads(-threads), quality(-quality), cpu(-cpu-used), crf(-crf), bv(-b:v), min(-minrate), max(-maxrate), ba(-b:a) and speed(-speed) are valid.
 # If 2pass is true, use 2-pass encoding.
 ff_options: {}
+#
+# If true, amplify the source volume to -0.1 dB when the maximum source volume is less than -0.2 dB
+maximize: false

@@ -73,6 +73,26 @@ class MmFfT9R
     sock.close
     exit 127
   end
+
+  def hwdec cmdlist, res
+    if @config["hwdec"] && @config["hwaccel"] && @config["hwdec"].map(&:downcase).any? {|i| res[:source_meta]["streams"].map {|i| i["codec_name"].downcase }.include?(i) }
+      if @config["hwaccel_device"]
+        cmdlist << "-init_hw_device"
+        cmdlist << "#{@config["hwaccel"]}=mmffhw:#{@config["hwaccel_device"]}"
+        cmdlist << "-hwaccel_device"
+        cmdlist << @config["hwaccel_device"]
+      end
+      cmdlist << "-hwaccel"
+      cmdlist << @config["hwaccel"]
+    end
+  end
+
+  def maximize cmdlist, res
+    if res[:gain]
+      cmdlist << "-af"
+      cmdlist << "volume=#{res[:gain]}"
+    end
+  end
   
   def ff1 res, crf: nil, bv: nil
     # Setup
@@ -81,6 +101,8 @@ class MmFfT9R
     # Global Options
     cmdlist << "-nostdin"        # Do not use STDIN
     cmdlist << "-n"              # Do not overwrite
+
+    hwdec cmdlist, res
 
     # Input File Options
     cmdlist << "-ss" << res[:ff_options]["ss"] if res[:ff_options]["ss"] # SKIP
@@ -121,6 +143,8 @@ class MmFfT9R
       cmdlist << "-b:a" << (res[:ff_options]["ba"] || "128k")
       cmdlist << "-speed" << res[:ff_options]["speed"] if  res[:ff_options]["speed"]
     end
+
+    maximize cmdlist, res
 
     cmdlist << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
@@ -166,6 +190,8 @@ class MmFfT9R
     cmdlist << "-nostdin"        # Do not use STDIN
     cmdlist << "-n"              # Do not overwrite
 
+    hwdec cmdlist, res
+
     # Input File Options
     cmdlist << "-ss" << res[:ff_options]["ss"].to_s if res[:ff_options]["ss"] # SKIP
     cmdlist << "-to" << res[:ff_options]["to"].to_s if res[:ff_options]["to"] # Time duration
@@ -199,6 +225,9 @@ class MmFfT9R
     cmdlist1 << "/dev/null"
     cmdlist2 << "-c:a" << "libopus"
     cmdlist2 << "-b:a" << (res[:ff_options]["ba"] || "128k")
+
+    maximize cmdlist, res
+
     cmdlist2 << "#{@config["outdir"]}/#{res[:title]}/#{res[:outfile]}"
 
     Dir.mkdir "#{@config["outdir"]}/#{res[:title]}" unless File.exist? "#{@config["outdir"]}/#{res[:title]}"

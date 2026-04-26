@@ -25,3 +25,16 @@ default:
   #
   # Power is calculated from the average of the specific titles specified here, rather than the average of the whole.
   #standard: Genshin
+  #
+  ########## HWACCEL ##########
+  #
+  # A list of codec formats for source files that use hardware decoding. The format should match the `codec_name` option in ffprobe.
+  # hwdec: [h264, h265, vp9, av1]
+  #
+  # The hwaccel value in FFmpeg. This is automatically set even when hwaccel_device is specified.
+  # hwaccel: vulkan
+  #
+  # The value of `hwaccel_device`. You can specify the file path of the render device. This is primarily used on hosts with multiple video cards. Since `/dev/dri/renderD*` values may change, I recommend using `/dev/dri/by-path/*-render`.
+  # hwaccel_device: /dev/dri/by-path/pci-0000:0c:00.0-render
+  #
+  #############################
